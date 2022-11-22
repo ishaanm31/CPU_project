@@ -84,13 +84,12 @@ architecture behave of ALU is
 							Z_F <= '1';
 						else Z_F <= '0';
 						end if;
-----------------------------CARRY FLAG-----------
-						C_F <= add_carry(ALU_A,ALU_B,'0');
 				elsif (sel= "01") then
 						ALU_C <= bit_nand(ALU_A,ALU_B);
 						if( bit_nand(ALU_A,ALU_B) = "0000000000000000") then
 							Z_F <= '1';
 						else Z_F <= '0';
+						
 						end if;
 				elsif (sel= "10") then
 						ALU_C <= bit_xor(ALU_A,ALU_B);
@@ -105,6 +104,10 @@ architecture behave of ALU is
 						else Z_F <= '0';
 						end if;
 				end if;
-			
+---------------------CARRY FLAG----------------------------
+---I am modifing carry flag every time,
+---but we can set the carry ff to reset
+---when we dont want to modify it.
+			   C_F <= add_carry(ALU_A,ALU_B,'0');	
 	end process;
 end behave;
