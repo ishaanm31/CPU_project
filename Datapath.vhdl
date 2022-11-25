@@ -7,72 +7,56 @@ entity Datapath is
 		);
 end Datapath;
 
+architecture Struct of Datapath is
+    --1. ALU
+    component ALU is
+        port( sel: in std_logic_vector(1 downto 0); 
+			ALU_A: in std_logic_vector(15 downto 0);
+			ALU_B: in std_logic_vector(15 downto 0);
+			ALU_c: out std_logic_vector(15 downto 0);
+			C_F: out std_logic;
+			Z_F: out std_logic
+		);
+    end component;
 
-architecture behave of Datapath is
-    -------ADD-SUM-------------------------------------------------------------
-       function add_sum( a,b : in std_logic_vector(15 downto 0);
-                 M : in std_logic
-                        )
-            return std_logic_vector is
-                variable sum :  std_logic_vector(15 downto 0); 
-                variable carry: std_logic_vector(15 downto 0);
-            begin
-                loop1 : for i in 0 to 15 loop
-                        if i=0 then
-                                    sum(i) := a(i) xor (b(i) xor M) xor M;
-                                 carry(i) := (a(i) and (b(i) xor M)) or (M and ( a(i) or (b(i) xor M)));
-                        else 
-                            sum(i) := a(i) xor (b(i) xor M) xor carry(i-1);
-                            carry(i) := (a(i) and (b(i) xor M)) or (carry(i-1) and ( a(i) or (b(i) xor M)));
-                        end if;
-                end loop loop1;
-            return sum;
-        end add_sum;
-    ---------ADD-CARRY-----------------------------------------------------------
-        function add_carry( a,b : in std_logic_vector(15 downto 0);
-                    M : in std_logic
-                        )
-            return std_logic is
-                variable sum :  std_logic_vector(15 downto 0); 
-                variable carry: std_logic_vector(15 downto 0);
-            begin
-                loop2 : for i in 0 to 15 loop
-                    if i=0 then
-                        sum(i) := a(i) xor (b(i) xor M) xor M;
-                        carry(i) := (a(i) and (b(i) xor M)) or (M and ( a(i) or (b(i) xor M)));
-                    else 
-                        sum(i) := a(i) xor (b(i) xor M) xor carry(i-1);
-                        carry(i) := (a(i) and (b(i) xor M)) or (carry(i-1) and ( a(i) or (b(i) xor M)));
-                    end if;
-                end loop loop2;
-            return carry(15);
-        end add_carry;	
-    -------BIT-WISE-NAND-----------------------------------------------------	
-        function bit_nand(a: in std_logic_vector(15 downto 0);
-                  b: in std_logic_vector(15 downto 0))
-            return std_logic_vector is
-                variable S : std_logic_vector(15 downto 0);
-            begin
-                loop3 : for i in 0 to 15 loop
-                           S(i) :=(a(i) nand b(i));
-                end loop loop3;
-            return S;
-        end bit_nand ;
-    -------BIT WISE XOR------------------------------------------------
-        function bit_xor(a: in std_logic_vector(15 downto 0);
-                     b: in std_logic_vector(15 downto 0))
-        return std_logic_vector is
-            variable S : std_logic_vector(15 downto 0);
-        begin
-            loop4 : for i in 0 to 15 loop
-                 S(i) :=(a(i) xor b(i));
-            end loop loop4;
-        return S;
-        end bit_xor ;
+    --2. 16 bit 2x1 Mux
+    component Mux16_2x1 is
+        port(A0: in std_logic_vector(15 downto 0);
+             A1: in std_logic_vector(15 downto 0);
+             sel:in std_logic_vector;
+             F: out std_logic);
+    end component;
+
+    --3. 16 bit 4x1 Mux
+    component Mux16_4x1 is
+        port(A0: in std_logic_vector(15 downto 0);
+            A1: in std_logic_vector(15 downto 0);
+            A2: in std_logic_vector(15 downto 0);
+            A3: in std_logic_vector(15 downto 0);
+            sel: in std_logic_vector(1 downto 0);
+            F: out std_logic);
+    end component;
     
-        begin
-        alu : process(ALU_A, ALU_B,sel)
-            
-        end process;
-    end behave;
+    --4. Temporary Register
+    component Temp_Reg is
+        port (DataIn:in std_logic_vector(15 downto 0);
+        clock,Write_Enable:in std_logic;
+        DataOut:out std_logic_vector(15 downto 0));
+        end component;
+    
+    --5. Register_File
+    component Register_file is
+        port (A1, A2, A3: in std_logic_vector(2 downto 0 );
+              D3: in std_logic_vector(15 downto 0);
+              clock,Write_Enable:in std_logic;
+              D1, D2: out std_logic_vector(15 downto 0));
+        end component;
+    
+    --Signals required:
+    signal alu_a, alu_b: std_logic_vector(15 downto 0);
+    signal carry_dff_inp, zero_diff_inp: std_logic_vector();    
+
+begin
+    ALU : ALU(ALU_A => alu_a, ALU_B => alu_b, ALU_C => alu_c, );
+end Struct;
     
