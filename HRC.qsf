@@ -61,3 +61,9 @@ set_global_assignment -name POWER_DEFAULT_INPUT_IO_TOGGLE_RATE "12.5 %"
 set_global_assignment -name VHDL_FILE ALU.vhd
 set_global_assignment -name VHDL_FILE SignedExt.vhd
 set_global_assignment -name VHDL_FILE Register_file.vhd
+set_global_assignment -name VHDL_FILE Datapath.vhdl
+set_global_assignment -name VHDL_FILE components.vhd
+set_global_assignment -name VHDL_FILE SE7.vhd
+set_global_assignment -name VHDL_FILE FSM.vhd
+set_global_assignment -name VHDL_FILE Temp_Reg.vhd
+set_global_assignment -name VHDL_FILE Memory.vhd
