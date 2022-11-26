@@ -24,9 +24,10 @@ architecture behave of FSM is
     -------ADD-SUM-------------------------------------------------------------
     type FSM_States   is (S0,S1,S2,S3,S4,S5,S6,S7,S8);
     signal State : FSM_States;
+    shared variable i:integer range 0 to 7;
 begin
     
-    process(clock, ALU_B,sel)
+process(clock, ALU_B,sel)
     variable next_state: FSM_States;
     variable v_alu_sel: std_logic_vector(1 downto 0);    
     variable v_loop_count: std_logic_vector(2 downto 0);
@@ -39,6 +40,7 @@ begin
     variable v_sel_m1, v_sel_m2: std_logic_vector(1 downto 0);
     variable v_sel_m3, v_sel_m4, v_sel_m5: std_logic;
     variable OP_code :std_logic_vector(3 downto 0);
+    variable Flag: std_logic;
     begin    
         
         v_alu_sel:="00";
@@ -55,7 +57,7 @@ begin
         v_sel_m4:='0';
         v_sel_m5:='0';
         OP_code:= T2_out(15 downto 12);
-
+        Flag:= (((not (T2_out(1))) and (not(T2_out(0))) or (T2_out(1)and C_flag) or (T2_out(0)and Z_flag));
 
 case State is --  making cases for states 
  
@@ -66,7 +68,10 @@ case State is --  making cases for states
         v_sel_m4:='0';
         v_T2_WR:='1';
 
-        next_state:=S1;
+        if(OP_code="0011") then
+            next_state:=S8;
+        else next_state:= S1;
+        end if;
     
 -----------------------------------				    
     when S1 =>
@@ -74,35 +79,165 @@ case State is --  making cases for states
         v_m3_sel:="0";
         v_T3_WR:='1';
         v_T4_WR:='1';
-        v_A3_sel:="10";
 
-            if(vop="0000" or vop="0010" or vop="0001") then
-                next_state := S5;
-            elsif (vop="0011") then
-                
-            end if;
+        if(OP_code="0000") then
+            if(Flag = '1') then
+                next_state := S2;
+            else next_state := S3;
+            
+        elsif (OP_code="0001") then
+            next_state := S2;
+
+        elsif(OP_code="0010") then
+            if(Flag = '1') then
+                next_state := S2;
+            else next_state := S3;
+            
+        elsif(OP_code="0011") then
+            null;
+            
+        elsif(OP_code="0100") then
+             next_state := S2;
+
+        elsif(OP_code="0101") then
+             next_state := S2;
+        elsif(OP_code="0110") then
+            next_state := S6;
+
+        elsif(OP_code="0111") then
+            next_state := S7;
+
+        elsif(OP_code="1100") then
+            next_state := S2
+            
+        elsif(OP_code="1000") then
+            v_D3_sel := "000";
+            v_A3_sel := "010";
+            v_Reg_file_EN := '1';
+            next_state := S3;
+
+        elsif(OP_code="1001") then
+            v_D3_sel := "000";
+            v_A3_sel := "010";
+            v_Reg_file_EN := '1';
+            next_state := S8;
+    
+        else null;
+        end if;
 -----------------------------------		 
     when S2 =>
         v_m3_sel:='1';
         v_T3_WR:='1';
-        v_Z_ctrl:='1';
-        v_C_ctrl:='1';
-            
+        -- v_Z_ctrl:='1';
+        -- v_C_ctrl:='1';
+        if(OP_code="0000") then
+            v_sel_m1:="10";
+            v_sel_m2:="00";
+            v_alu_sel="00";
+            v_Z_ctrl:='1';
+            v_C_ctrl:='1';
+            next_state := S8
+
+        elsif (OP_code="0001") then
+            v_sel_m1:="11";
+            v_sel_m2:="00";
+            v_alu_sel="00";
+            v_Z_ctrl:='1';
+            v_C_ctrl:='1';
+            next_state:= S8;
+
+        elsif(OP_code="0010") then
+            v_sel_m1:="10";
+            v_sel_m2:="00";
+            v_alu_sel="01";
+            v_Z_ctrl:='1';
+            next_state := S8  
+
+        elsif(OP_code="0011") then
+            null;
+
+        elsif(OP_code="0100") then
+            v_sel_m1:="11";
+            v_sel_m2:="11";
+            v_alu_sel="00";
+            next_state:= S4;
+
+        elsif(OP_code="0101") then
+            v_sel_m1:="11";
+            v_sel_m2:="11";
+            v_alu_sel="00";
+            next_state:= S5;
+
+        elsif(OP_code="0110") then
+            null;
+        elsif(OP_code="0111") then
+            null;
+        elsif(OP_code="1100") then
+            v_sel_m1:="01";
+            v_sel_m2:="11";
+            v_alu_sel="10";
+            v_Z_ctrl:='1';
+            next_state := S3;
+        elsif(OP_code="1000") then
+            null;
+        elsif(OP_code="1001") then
+            null;
+
+        else null;
+
+        end if;
 -----------------------------------		
     when S3 =>
         v_sel_m1:="00";
         v_D3_sel:="101";
         v_A3_sel:="011";
-        v_Reg_file_EN:='1';
-        
-            if(vop="0100") then
-                vc_m4 := "01";
-                vc_m5 := "01";
-                vc_m1 := '1';
-                vc_T2 := '1';
-                vc_m11 := "10";
-                next_state := S6;
-            end if;
+        v_Reg_file_EN:='1';   
+        if(OP_code="0000") then
+            v_sel_m2:= "10";
+            next_state:=S0; 
+
+        elsif (OP_code="0001") then
+            v_sel_m2:= "10";
+            next_state:=S0; 
+            
+        elsif(OP_code="0010") then
+            v_sel_m2:= "10";
+            next_state:=S0;
+             
+        elsif(OP_code="0011") then
+            v_sel_m2:= "10";
+            next_state:=S0;
+             
+        elsif(OP_code="0100") then
+            v_sel_m2:= "10";
+            next_state:=S0; 
+
+        elsif(OP_code="0101") then
+            v_sel_m2:= "10";
+            next_state:=S0; 
+            
+        elsif(OP_code="0110") then
+            v_sel_m2:= "10";
+            next_state:=S0; 
+
+        elsif(OP_code="0111") then
+            v_sel_m2:= "10";
+            next_state:=S0;             
+
+        elsif(OP_code="1100") then
+            if(Z_flag='1') then
+                v_sel_m2:= "11";
+            else v_sel_m2:= "10";
+            next_state:= S0;
+        elsif(OP_code="1000") then
+            v_sel_m2:= "01";
+            next_state:= S0;
+        elsif(OP_code="1001") then
+            null;
+        else null;
+           
+
+        end if;
 -----------------------------------
 
     when S4 => 
@@ -110,32 +245,95 @@ case State is --  making cases for states
         v_D3_sel := "010";
         v_Reg_file_EN := '1';
         v_A3_sel := "010";
+        
+        next_state:=S3;
+
+        end if;
 -----------------------------------
     when S5 =>
-        v_m4_sel := '1';
-        v_m5_sel := '0';
+        v_sel_m4 := '1';
+        v_sel_m5 := '0';
         v_mem_WR := '1';
+        next_state:=S3;
+
+        end if;
         
     when S6 =>
-        v_Reg_file_EN := '1';
-        v_m4_sel:='1';
-        v_D3_sel:="010";
-    loop1: for i in 0 to 7 loop
+        if(i<7) then
+            v_Reg_file_EN := '1';
+            v_sel_m4:='1';
+            v_D3_sel:="010";
+            v_loop_count:=std_logic_vector(to_unsigned(i,3));
+            v_A3_sel:="011";
+            v_sel_m1:="01";
+            v_sel_m2:="10";
+            v_T3_WR:='1';
+            i:=i+1;
+            next_state:=S6;
+        else 
+            v_Reg_file_EN := '1';
+            v_sel_m4:='1';
+            v_D3_sel:="010";
+            v_loop_count:=std_logic_vector(to_unsigned(i,3));
+            v_A3_sel:="011";
+            v_sel_m1:="01";
+            v_sel_m2:="10";
+            v_T3_WR:='1';
+            i:=0;
+            next_state:=S3; 
+        end if;
+
+    when S7 =>
+    
+    if(i<7) then
+        v_A1_sel:="00";
+        v_sel_m5:='1';
+        v_sel_m4:='1';
         v_loop_count:=std_logic_vector(to_unsigned(i,3));
-        v_A3_sel:="011";
         v_sel_m1:="01";
         v_sel_m2:="10";
         v_T3_WR:='1';
-    end loop;
+        v_sel_m3:='1';
+        i:=i+1;
+        next_state:=S7;
+    else 
+        v_A1_sel:="00";
+        v_sel_m5:='1';
+        v_sel_m4:='1';
+        v_loop_count:=std_logic_vector(to_unsigned(i,3));
+        v_sel_m1:="01";
+        v_sel_m2:="10";
+        v_T3_WR:='1';
+        v_sel_m3:='1';
+        i:=0;
+        next_state:=S3; 
+    end if;
 -------------------------------------
     when S8 =>
-            vc_rf := '1';
-            vc_m4 := "00";
-            vc_m5 := "00";
-            vc_m1 := '1';
-            vc_m7 := "11";
-            vc_m9 := "10";
-            next_state := S4;
+        v_Reg_file_EN := '1';   
+            if(OP_code="0000") then
+                v_D3_sel:="011";
+                v_A3_sel:="000";
+                next_state:=S3;
+            elsif (OP_code="0001") then
+                v_D3_sel:="011";
+                v_A3_sel:="001";
+                next_state:=S3;
+            elsif(OP_code="0010") then
+                v_D3_sel:="011";
+                v_A3_sel:="000";
+                next_state:=S3;
+            elsif(OP_code="0011") then
+                v_D3_sel:="110";
+                v_A3_sel:="010";
+                next_state:=S3;
+                        
+            elsif(OP_code="1001") then
+                v_D3_sel:="001";
+                v_A3_sel:="101";
+            else null;
+
+            end if;
 -----------------------------------
     when others =>  null;
 end case;
