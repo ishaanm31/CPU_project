@@ -28,31 +28,32 @@ begin
     
     process(clock, ALU_B,sel)
     variable next_state: FSM_States;
-    variable alu_sel: std_logic_vector(1 downto 0);    
-    variable loop_count: std_logic_vector(2 downto 0);
-    variable A1_sel : std_logic_vector(1 downto 0);
-    variable A3_sel : std_logic_vector(2 downto 0);
-    variable D3_sel : std_logic_vector(2 downto 0);
-    variable Reg_file_EN, mem_WR: std_logic;
-    variable C_ctrl, Z_ctrl: std_logic;
-    variable T1_WR,T2_WR,T3_WR,T4_WR: std_logic;
-    variable sel_m1, sel_m2: std_logic_vector(1 downto 0);
-    variable sel_m3, sel_m4, sel_m5: std_logic;
+    variable v_alu_sel: std_logic_vector(1 downto 0);    
+    variable v_loop_count: std_logic_vector(2 downto 0);
+    variable v_A1_sel : std_logic_vector(1 downto 0);
+    variable v_A3_sel : std_logic_vector(2 downto 0);
+    variable v_D3_sel : std_logic_vector(2 downto 0);
+    variable v_Reg_file_EN, v_mem_WR: std_logic;
+    variable v_C_ctrl, v_Z_ctrl: std_logic;
+    variable v_T1_WR,v_T2_WR,v_T3_WR,v_T4_WR: std_logic;
+    variable v_sel_m1, v_sel_m2: std_logic_vector(1 downto 0);
+    variable v_sel_m3, v_sel_m4, v_sel_m5: std_logic;
     variable OP_code :std_logic_vector(3 downto 0);
     begin    
         
-        alu_sel:="00";
-        loop_count:="000";
-        A1_sel:="00"; A3_sel:="000"; D3_sel:="000";
-        m3_sel:='0';
-        Reg_file_EN:='0';
-        mem_WR:='0';
-        C_ctrl:='0';    Z_ctrl:='0';
-        T1_WR:='0';T2_WR:='0';T3_WR:='0';T4_WR:='0'
-        sel_m1:="00";sel_m2:="00";
-        sel_m3:='0';
-        sel_m4:='0';
-        sel_m5:='0';
+        v_alu_sel:="00";
+        v_loop_count:="000";
+        v_A1_sel:="00"; A3_sel:="000"; D3_sel:="000";
+        v_m3_sel:='0';
+        v_Reg_file_EN:='0';
+        v_mem_WR:='0';
+        v_C_ctrl:='0'; 
+        v_Z_ctrl:='0';
+        v_T1_WR:='0';T2_WR:='0';T3_WR:='0';T4_WR:='0'
+        v_sel_m1:="00";sel_m2:="00";
+        v_sel_m3:='0';
+        v_sel_m4:='0';
+        v_sel_m5:='0';
         OP_code:= T2_out(15 downto 12);
 
 
@@ -60,17 +61,20 @@ case State is --  making cases for states
  
             --------------------------		    
     when S0 =>
-        A1_sel:="01";
-        T1_WR:='1';
-        sel_m4:='0';
-        T2_WR:='1';
+        v_A1_sel:="01";
+        v_T1_WR:='1';
+        v_sel_m4:='0';
+        v_T2_WR:='1';
+
+        next_state:=S1;
+    
 -----------------------------------				    
     when S1 =>
-        A1_sel:="10";
-        m3_sel:="0";
-        T3_WR:='1';
-        T4_WR:='1';
-        A3_sel:="10";
+        v_A1_sel:="10";
+        v_m3_sel:="0";
+        v_T3_WR:='1';
+        v_T4_WR:='1';
+        v_A3_sel:="10";
 
             if(vop="0000" or vop="0010" or vop="0001") then
                 next_state := S5;
@@ -79,16 +83,18 @@ case State is --  making cases for states
             end if;
 -----------------------------------		 
     when S2 =>
-        m3_sel:='1';
-        T3_WR:='1';
-        Z_ctrl:='1';
-        C_ctrl:='1';
+        v_m3_sel:='1';
+        v_T3_WR:='1';
+        v_Z_ctrl:='1';
+        v_C_ctrl:='1';
             
 -----------------------------------		
     when S3 =>
-        sel_m1:="00";
-        D3_sel:="101";
-        A3_sel:="011";
+        v_sel_m1:="00";
+        v_D3_sel:="101";
+        v_A3_sel:="011";
+        v_Reg_file_EN:='1';
+        
             if(vop="0100") then
                 vc_m4 := "01";
                 vc_m5 := "01";
@@ -98,28 +104,29 @@ case State is --  making cases for states
                 next_state := S6;
             end if;
 -----------------------------------
-    when S3 =>
-            vmem_wr := '1';
-            vc_m4 := "01";
-            vc_m5 := "01";
-            vc_m1 := '1';
-            vc_m3 := '0';
-            next_state := S10;
-            
-    when S4 => -- t2 += 1;
-        m4 := '1';
-        Reg_file_EN := '1';
-        A3_sel := "010";
+
+    when S4 => 
+        v_m4 := '1';
+        v_D3_sel := "010";
+        v_Reg_file_EN := '1';
+        v_A3_sel := "010";
 -----------------------------------
     when S5 =>
-        m4 := '1';
-        m5 := '0';
-        mem_WR := '1';
+        v_m4_sel := '1';
+        v_m5_sel := '0';
+        v_mem_WR := '1';
         
     when S6 =>
-        m4 := '1';
-        m5 := '1';
-        mem_WR := '1';
+        v_Reg_file_EN := '1';
+        v_m4_sel:='1';
+        v_D3_sel:="010";
+    loop1: for i in 0 to 7 loop
+        v_loop_count:=std_logic_vector(to_unsigned(i,3));
+        v_A3_sel:="011";
+        v_sel_m1:="01";
+        v_sel_m2:="10";
+        v_T3_WR:='1';
+    end loop;
 -------------------------------------
     when S8 =>
             vc_rf := '1';

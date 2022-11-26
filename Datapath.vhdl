@@ -187,11 +187,7 @@ begin
     
     mem : Memory port map(Mem_Add => mem_add, Mem_Data_In => mem_in,Write_Enable => mem_WR,clock => clock, Mem_Data_Out => mem_out);
     m4 : Mux16_2x1 port map(A0 => D1, A1 =>T3_out, sel =>sel_m4,F =>mem_add);
-    m5 : Mux16_2x1 port map(A0 =>T4_out, A1 => D1, sel =>sel_m5,F =>Mem_Data_In);
+    m5 : Mux16_2x1 port map(A0 =>T4_out, A1 => D1, sel =>sel_m5,F =>mem_in);
 
-
-    
-    
---
 end Struct;
     

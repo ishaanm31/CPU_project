@@ -12,7 +12,7 @@ architecture struct of Temp_Reg is
     shared variable Data : std_logic_vector(15 downto 0):="0000000000000000";
 begin
 -----------------------------------------ARRAY of Registers--------------------------------------
-write_process : process(DataIn,clock) 
+write_process : process(clock) 
 
   begin
     if(Write_Enable='1') then  
