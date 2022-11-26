@@ -6,21 +6,22 @@ entity Datapath is
 	port(
         --Inputs
         clock:in std_logic;
+
+        --Input from Datapath
         alu_sel:in std_logic_vector(1 downto 0);    
         loop_count:in std_logic_vector(2 downto 0);
         A1_sel : in std_logic_vector(1 downto 0);
         A3_sel : in std_logic_vector(2 downto 0);
         D3_sel : in std_logic_vector(2 downto 0);
-        T3_sel : in std_logic_vector(0 downto 0);
         Reg_file_EN, mem_WR: in std_logic;
         C_ctrl, Z_ctrl: in std_logic;
         T1_WR,T2_WR,T3_WR,T4_WR: in std_logic;
         sel_m1, sel_m2: in std_logic_vector(1 downto 0);
-        sel_m3, m45_ctrl: in std_logic;
+        sel_m3, sel_m4, sel_m5: in std_logic;
         
         --Outputs
-        Mem_Data_In: out std_logic_vector(15 downto 0);
         Z_flag, C_flag: out std_logic;
+        T1_out,T2_out : buffer std_logic_vector(15 downto 0)
 		);
 end Datapath;
 
@@ -138,8 +139,8 @@ architecture Struct of Datapath is
     signal A1,A2 A3: std_logic_vector(2 downto 0);
     
     --Signals for temporary Registers.
-    signal T1_in,T3_in,T4_in: std_logic_vector(15 downto 0);
-    signal T1_out,T2_out,T3_out,T4_out: std_logic_vector(15 downto 0);
+    signal T3_in: std_logic_vector(15 downto 0);
+    signal T3_out,T4_out: std_logic_vector(15 downto 0);
     
     --Sig_Extended Signals
     signal T2_SE7_out: std_logic_vector(15 downto 0);
@@ -153,12 +154,13 @@ architecture Struct of Datapath is
     
 begin
 -- Temporary registers
-    T1: Temp_Reg port map(DataIn => T1_in, clock => clock, Write_Enable => T1_WR, DataOut => T1_out);
-    T2: Temp_Reg port map(DataIn => Mem_Data_Out, clock => clock, Write_Enable => T2_WR, DataOut => T2_out);
+    T1: Temp_Reg port map(DataIn => D1, clock => clock, Write_Enable => T1_WR, DataOut => T1_out);
+    T2: Temp_Reg port map(DataIn => mem_out, clock => clock, Write_Enable => T2_WR, DataOut => T2_out);
     T3: Temp_Reg port map(DataIn => T3_in, clock => clock, Write_Enable => T3_WR, DataOut => T3_out);
-    T4: Temp_Reg port map(DataIn => T4_in, clock => clock, Write_Enable => T4_WR, DataOut => T4_out);
---Temporary register Muxes
-    T3_Mux : Mux16_2x1(D1,alu_c,T3_sel,T3_in);
+    T4: Temp_Reg port map(DataIn => D2, clock => clock, Write_Enable => T4_WR, DataOut => T4_out);
+
+    m3: MUX16_2x1 port map(A0=> D1,A1=> alu_c, sel =>sel_m3, F=>T3_in);
+
 --Component Initiate for Register File
     Reg_File: Register_file port map (A1, A2, A3, D3, clock, Reg_file_EN, D1, D2);
     A2 <= T2_out(8 downto 6);
@@ -169,7 +171,7 @@ begin
     A3_Mux: Mux3_8x1 port map (T2_out(5 downto 3),T2_out(8 downto 6),T2_out(11 downto 9),loop_count,
                                "111","111","111","111",A3_sel,A3);
     D3_Mux: Mux16_8x1 port map(T1_out,T4_out,Mem_Data_Out,T3_out,SE7_out,
-                                "0000000000000000","0000000000000000","0000000000000000",D3_sel,D3);
+                                alu_c,"0000000000000000","0000000000000000",D3_sel,D3);
 --Signed Extended signals of intructio(T2)
     T2_SE7  : SE7 port map(T2_out(8 downto 0),T2_SE7_out(15 downto 0))  ;
     T2_SE10 : SE10 port map(T2_out(5 downto 0),T2_SE10_out(15 downto 0));
@@ -180,14 +182,14 @@ begin
     m1 : Mux16_4x1 port map(A0 => T1_out, A1 => T3_out, A2 => T4_out,A3 => T2_SE10_out, sel => sel_m1, F => alu_a);
     m2 : Mux16_4x1 port map(A0 => T3_out, A1 => SE7_out, A2 => "0000000000000001", A3 => "0000000000000000", sel => sel_m2, F => alu_b); 
     
-    carry_dff: dff_en port map(clk => clock, reset => reset, en => C_ctrl, q => C_flag);
-    zero_dff: dff_en port map(clk => clock, reset => reset, en => Z_ctrl, q => Z_flag);
+    carry_dff: dff_en port map(clk => clock, reset => reset, en => C_ctrl, d => carry_dff_inp, q => C_flag);
+    zero_dff: dff_en port map(clk => clock, reset => reset, en => Z_ctrl, d => zero_dff_inp, q => Z_flag);
     
     mem : Memory port map(Mem_Add => mem_add, Mem_Data_In => mem_in,Write_Enable => mem_WR,clock => clock, Mem_Data_Out => mem_out);
-    m4 : Mux16_2x1 port map(A0 => D1, A1 =>T3_in , sel =>m45_ctrl,F =>mem_add);
-    m5 : Mux16_2x1 port map(A0 =>T4_in ,A1 => D1, sel =>m45_ctrl,F =>Mem_Data_In);
+    m4 : Mux16_2x1 port map(A0 => D1, A1 =>T3_out, sel =>sel_m4,F =>mem_add);
+    m5 : Mux16_2x1 port map(A0 =>T4_out, A1 => D1, sel =>sel_m5,F =>Mem_Data_In);
 
-    m3: MUX16_2x1 port map(A0=> D1,A1=> ,sel =>sel_m3, F=>T3_out);                -- fix this in the end.
+
     
     
 --
