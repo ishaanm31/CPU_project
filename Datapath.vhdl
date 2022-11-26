@@ -8,13 +8,15 @@ entity Datapath is
         clock:in std_logic;
         alu_sel:in std_logic_vector(1 downto 0);    
         loop_count:in std_logic_vector(2 downto 0);
-        A1_sel : in std_logic_vector(0 downto 0);
-        A3_sel : in std_logic_vector(1 downto 0);
-        D3_sel : in std_logic_vector(1 downto 0);
-        Reg_file_EN: in std_logic;
+        A1_sel : in std_logic_vector(1 downto 0);
+        A3_sel : in std_logic_vector(2 downto 0);
+        D3_sel : in std_logic_vector(2 downto 0);
+        T3_sel : in std_logic_vector(0 downto 0);
+        Reg_file_EN, mem_WR: in std_logic;
         C_ctrl, Z_ctrl: in std_logic;
-        T1_WR,T2_WR,T3_WR: in std_logic;
-        sel_m1,sel_m2,sel_m3: in std_logic;
+        T1_WR,T2_WR,T3_WR,T4_WR: in std_logic;
+        sel_m1, sel_m2: in std_logic_vector(1 downto 0);
+        sel_m3, m45_ctrl: in std_logic;
         
         --Outputs
         Mem_Data_In: out std_logic_vector(15 downto 0);
@@ -50,7 +52,7 @@ architecture Struct of Datapath is
             A2: in std_logic_vector(15 downto 0);
             A3: in std_logic_vector(15 downto 0);
             sel: in std_logic_vector(1 downto 0);
-            F: out std_logic);
+            F: out std_logic_vector(15 downto 0));
     end component;
     
     --4. Temporary Register
@@ -68,13 +70,23 @@ architecture Struct of Datapath is
               D1, D2: out std_logic_vector(15 downto 0));
         end component;
     
-    --6. Signed extension 7
+    --6. Signed Extension 7(SE7)
     component SE7 is
         port (Raw: in std_logic_vector(8 downto 0 );
-            Outp:out std_logic_vector(15 downto 0):="0000000000000000");
+            Outp:out std_logic_vector(15 downto 0));
     end component;    
-    
-    --7. D-flipflop with enable
+    --7.Shifter 7 (7SE)
+    component Shifter7 is
+        port (Raw: in std_logic_vector(8 downto 0 );
+            Outp:out std_logic_vector(15 downto 0));
+    end component Shifter7;
+    --8.Signed Extension 10 (SE19)
+    component SE10 is
+        port (Raw: in std_logic_vector(5 downto 0 );
+            Output:out std_logic_vector(15 downto 0));
+    end component SE10;
+
+    --9. D-flipflop with enable
     component dff_en is
         port(
            clk: in std_logic;
@@ -85,6 +97,37 @@ architecture Struct of Datapath is
         );
      end component;
     
+    --10. Memory of device
+    component Memory is
+        port (Mem_Add: in std_logic_vector(15 downto 0);
+        Mem_Data_In:in std_logic_vector(15 downto 0);
+        clock,Write_Enable:in std_logic;
+        Mem_Data_Out:out std_logic_vector(15 downto 0));
+    end component;
+
+    --11. 3 bit Muxes
+    component Mux3_8x1 is
+        port(A0: in std_logic_vector(2 downto 0);
+             A1: in std_logic_vector(2 downto 0);
+             A2: in std_logic_vector(2 downto 0);
+             A3: in std_logic_vector(2 downto 0);
+             A4: in std_logic_vector(2 downto 0);
+             A5: in std_logic_vector(2 downto 0);
+             A6: in std_logic_vector(2 downto 0);
+             A7: in std_logic_vector(2 downto 0);        
+             sel:in std_logic_vector(2 downto 0);
+             F: out std_logic_vector(2 downto 0));
+    end component;
+
+    component Mux3_4x1 is
+        port(A0: in std_logic_vector(2 downto 0);
+             A1: in std_logic_vector(2 downto 0);
+             A2: in std_logic_vector(2 downto 0);
+             A3: in std_logic_vector(2 downto 0);
+             sel: in std_logic_vector(1 downto 0);
+             F: out std_logic(2 downto 0));
+    end component;
+    
     --Signals required for ALU:
     signal alu_a, alu_b, alu_c: std_logic_vector(15 downto 0);
     signal carry_dff_inp, zero_dff_inp: std_logic_vector();
@@ -93,33 +136,60 @@ architecture Struct of Datapath is
     --Signals for Register File:
     signal D1,D2 D3: std_logic_vector(15 downto 0);
     signal A1,A2 A3: std_logic_vector(2 downto 0);
-
-    --Sig_Extended Signals
-    signal ImmT1_in: std_logic_vector();
-    --Signals in general:
-    signal SE1_out: std_logic_vector(15 downto 0);
-begin
---Component Initiate for Register File
-
-    Reg_File: Register_file port map (A1, A2, A3, D3, clock,Reg_file_EN, D1,D2);
-    --Muxes for input
-    A1_Mux: Mux16_2x1 port map(loop_count, "111", A1_sel, A1);
-    A3_Mux: Mux16_4x1 port map ();
-    --Signed Extender
     
+    --Signals for temporary Registers.
+    signal T1_in,T3_in,T4_in: std_logic_vector(15 downto 0);
+    signal T1_out,T2_out,T3_out,T4_out: std_logic_vector(15 downto 0);
+    
+    --Sig_Extended Signals
+    signal T2_SE7_out: std_logic_vector(15 downto 0);
+    signal T2_SE10_out: std_logic_vector(15 downto 0);
+    signal T2_7Shift_out: std_logic_vector(15 downto 0);
+
+    --Signals for memory:
+    signal mem_add,mem_in,mem_out: std_logic_vector(15 downto 0);
+    
+    --Signals in general:
+    
+begin
+-- Temporary registers
+    T1: Temp_Reg port map(DataIn => T1_in, clock => clock, Write_Enable => T1_WR, DataOut => T1_out);
+    T2: Temp_Reg port map(DataIn => Mem_Data_Out, clock => clock, Write_Enable => T2_WR, DataOut => T2_out);
+    T3: Temp_Reg port map(DataIn => T3_in, clock => clock, Write_Enable => T3_WR, DataOut => T3_out);
+    T4: Temp_Reg port map(DataIn => T4_in, clock => clock, Write_Enable => T4_WR, DataOut => T4_out);
+--Temporary register Muxes
+    T3_Mux : Mux16_2x1(D1,alu_c,T3_sel,T3_in);
+--Component Initiate for Register File
+    Reg_File: Register_file port map (A1, A2, A3, D3, clock, Reg_file_EN, D1, D2);
+    A2 <= T2_out(8 downto 6);
+    T4_in<=D2;
+
+--Muxes for input
+    A1_Mux: Mux3_4x1 port map(loop_count, "111",T2_out(11 downto 9) ,"000",A1_sel, A1);
+    A3_Mux: Mux3_8x1 port map (T2_out(5 downto 3),T2_out(8 downto 6),T2_out(11 downto 9),loop_count,
+                               "111","111","111","111",A3_sel,A3);
+    D3_Mux: Mux16_8x1 port map(T1_out,T4_out,Mem_Data_Out,T3_out,SE7_out,
+                                "0000000000000000","0000000000000000","0000000000000000",D3_sel,D3);
+--Signed Extended signals of intructio(T2)
+    T2_SE7  : SE7 port map(T2_out(8 downto 0),T2_SE7_out(15 downto 0))  ;
+    T2_SE10 : SE10 port map(T2_out(5 downto 0),T2_SE10_out(15 downto 0));
+    T2_shift: Shifter7 port map(T2_out(8 downto 0),T2_7Shift_out(15 downto 0));
 --Components for ALU
     ALU : ALU port map (ALU_A => alu_a, ALU_B => alu_b, ALU_C => alu_c, C_F => carry_dff_inp, Z_F => zero_dff_inp, sel => alu_sel);
-    m1 : Mux16_2x1 port map(A0 => T1_out, A1 => "0000000000000001", sel => sel_m1, F => alu_a);
-    SE1 : SE7 port map(Raw => T2_out(8 downto 0), outp => SE1_out);
-    m2 : Mux16_2x1 port map(A0 => T3_out, A1 => SE1_out, sel => sel_m2, F => alu_b); 
+    
+    m1 : Mux16_4x1 port map(A0 => T1_out, A1 => T3_out, A2 => T4_out,A3 => T2_SE10_out, sel => sel_m1, F => alu_a);
+    m2 : Mux16_4x1 port map(A0 => T3_out, A1 => SE7_out, A2 => "0000000000000001", A3 => "0000000000000000", sel => sel_m2, F => alu_b); 
+    
     carry_dff: dff_en port map(clk => clock, reset => reset, en => C_ctrl, q => C_flag);
     zero_dff: dff_en port map(clk => clock, reset => reset, en => Z_ctrl, q => Z_flag);
     
-    T1: Temp_Reg port map(DataIn => T1_in, clock => clock, Write_Enable => T1_WR, DataOut => T1_out);
-    T2: Temp_Reg port map(DataIn => T2_in, clock => clock, Write_Enable => T2_WR, DataOut => T2_out);
-    T3: Temp_Reg port map(DataIn => T3_in, clock => clock, Write_Enable => T3_WR, DataOut => T3_out);
+    mem : Memory port map(Mem_Add => mem_add, Mem_Data_In => mem_in,Write_Enable => mem_WR,clock => clock, Mem_Data_Out => mem_out);
+    m4 : Mux16_2x1 port map(A0 => D1, A1 =>T3_in , sel =>m45_ctrl,F =>mem_add);
+    m5 : Mux16_2x1 port map(A0 =>T4_in ,A1 => D1, sel =>m45_ctrl,F =>Mem_Data_In);
 
-    m3: MUX16_2x1 port map(A0=> ,A1=> ,sel =>sel_m3, F=>T3_out);                --
+    m3: MUX16_2x1 port map(A0=> D1,A1=> ,sel =>sel_m3, F=>T3_out);                -- fix this in the end.
+    
+    
 --
 end Struct;
     
