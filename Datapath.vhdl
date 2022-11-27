@@ -183,12 +183,22 @@ begin
 
 --Register File Instantiate
     Reg_File: Register_file port map (A1, A2, A3, D3, clock, Reg_file_EN, D1, D2);
+--A2 needs no Mux, it has only one input
     A2 <= T2_out(8 downto 6);
 
---Muxes for input
+--Muxes for input to Register File
+
     A1_Mux: Mux3_4x1 port map(loop_count, "111",T2_out(11 downto 9) ,"000",A1_sel, A1);
+    -- 00-> Loop Counter. Used for LM and SM Instruction
+    -- 01-> Gives out Program Counter (R7) to RF_D1
+    -- 10-> Gives out RA
+    -- 11-> Don't Care condition
     A3_Mux: Mux3_8x1 port map (T2_out(5 downto 3),T2_out(8 downto 6),T2_out(11 downto 9),loop_count,
                                "111","111","111","111",A3_sel,A3);
+    -- 00-> Gives rb to RF_D2
+    -- 01-> Gives out Program Counter (R7) to RF_D1
+    -- 10-> Gives out RA
+    -- 11-> Don't Care condition
     D3_Mux: Mux16_8x1 port map(T1_out,T4_out,mem_out,T3_out,T2_SE7_out,
                                 alu_c,"0000000000000000","0000000000000000",D3_sel,D3);
 --Signed Extended signals of intructio(T2)
