@@ -9,13 +9,12 @@ entity Datapath is
 
         --Input from Datapath
         alu_sel:in std_logic_vector(1 downto 0);    
-        loop_count_WR:in std_logic;
         A1_sel : in std_logic_vector(1 downto 0);
         A3_sel : in std_logic_vector(2 downto 0);
         D3_sel : in std_logic_vector(2 downto 0);
         Reg_file_EN, mem_WR: in std_logic;
         C_ctrl, Z_ctrl: in std_logic;
-        T1_WR,T2_WR,T3_WR,T4_WR: in std_logic;        
+        T1_WR,T2_WR,T3_WR,T4_WR,loop_count_WR: in std_logic;        
         sel_m1: in std_logic_vector(2 downto 0);
         sel_m2: in std_logic_vector(1 downto 0);
         sel_m3, sel_m4, sel_m5: in std_logic;
@@ -162,7 +161,7 @@ architecture Struct of Datapath is
     --Signals for temporary Registers.
     signal T3_in: std_logic_vector(15 downto 0);
     signal T3_out,T4_out: std_logic_vector(15 downto 0);
-    signal loop_count_IN,loop_count_OUT : std_logic_vector(2 downto 0);
+    signal loop_count_IN,loop_count : std_logic_vector(2 downto 0);
     
     --Sig_Extended Signals
     signal T2_SE7_out: std_logic_vector(15 downto 0);
@@ -180,7 +179,7 @@ begin
     T2: Temp_Reg port map(DataIn => mem_out, clock => clock, Write_Enable => T2_WR, DataOut => T2_out);
     T3: Temp_Reg port map(DataIn => T3_in, clock => clock, Write_Enable => T3_WR, DataOut => T3_out);
     T4: Temp_Reg port map(DataIn => D2, clock => clock, Write_Enable => T4_WR, DataOut => T4_out);
-    loop_register : Small_Reg port map (DataIn => ALU_C, clock => clock, Write_Enable => loop_count_WR, DataOut => loop_count_OUT);
+    loop_register : Small_Reg port map (DataIn => ALU_C, clock => clock, Write_Enable => loop_count_WR, DataOut => loop_count);
     m3: MUX16_2x1 port map(A0=> D1,A1=> alu_c, sel =>sel_m3, F=>T3_in);
 
 --Component Initiate for Register File
@@ -201,7 +200,7 @@ begin
     alu1 : ALU port map (ALU_A => alu_a, ALU_B => alu_b, ALU_C => alu_c, C_F => carry_dff_inp, Z_F => zero_dff_inp, sel => alu_sel);
     
     m1 : Mux16_8x1 port map(A0 => T1_out, A1 => T3_out, A2 => T4_out,A3 => T2_SE10_out,
-                            A4=>loop_count_OUT,A5=>"0000000000000000",A6=>"0000000000000000",
+                            A4=>loop_count,A5=>"0000000000000000",A6=>"0000000000000000",
                             A7=>"0000000000000000", sel => sel_m1, F => alu_a);
     m2 : Mux16_4x1 port map(A0 => T3_out, A1 => T2_SE7_out, A2 => "0000000000000001", A3 => "0000000000000000", sel => sel_m2, F => alu_b); 
     
