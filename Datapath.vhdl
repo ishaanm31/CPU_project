@@ -12,17 +12,20 @@ entity Datapath is
         A1_sel : in std_logic_vector(1 downto 0);
         A3_sel : in std_logic_vector(2 downto 0);
         D3_sel : in std_logic_vector(2 downto 0);
-        Reg_file_EN, mem_WR: in std_logic;
+        Reg_file_EN, mem_WR_Internal: in std_logic;
         C_ctrl, Z_ctrl: in std_logic;
         T1_WR,T2_WR,T3_WR,T4_WR,loop_count_WR: in std_logic;        
         ALU_A_sel: in std_logic_vector(2 downto 0);
         ALU_B_sel: in std_logic_vector(1 downto 0);
         T3_sel, Mem_Add_Sel, Mem_In_Sel: in std_logic;
         
-        --Outputs
+        --Outputs to FSM
         Z_flag, C_flag: out std_logic;
-        T2_out : buffer std_logic_vector(15 downto 0);
+        T1_out,T2_out ,T3_out: buffer std_logic_vector(15 downto 0);
         loop_count:buffer std_logic_vector(2 downto 0)
+        --External Memory Updating Pins
+        Mem_Ext_WR:in std_logic;
+        Mem_Ext_Data_in,Mem_Ext_Add : in std_logic_vector(15 downto 0);
 		);
 end Datapath;
 
@@ -160,7 +163,7 @@ architecture Struct of Datapath is
     
     --Signals for temporary Registers.
     signal T3_in: std_logic_vector(15 downto 0);
-    signal T3_out,T4_out: std_logic_vector(15 downto 0);
+    signal T4_out: std_logic_vector(15 downto 0);
     signal loop_count_IN,loop_count : std_logic_vector(2 downto 0);
     
     --Sig_Extended Signals
@@ -169,7 +172,8 @@ architecture Struct of Datapath is
     signal T2_7Shift_out: std_logic_vector(15 downto 0);
 
     --Signals for memory:
-    signal mem_add,mem_in,mem_out: std_logic_vector(15 downto 0);
+    signal mem_add,mem_WR_Internal,mem_out,mem_in: std_logic_vector(15 downto 0);
+    signal mem_WR: std_logic;
     
 begin
 -- Temporary registers and Loop Count register Instantiate
@@ -217,12 +221,13 @@ begin
     zero_dff: dff_en port map(clk => clock, reset => reset, en => Z_ctrl, d => zero_dff_inp, q => Z_flag);
     
     mem : Memory port map(Mem_Add => mem_add, Mem_Data_In => mem_in,Write_Enable => mem_WR,clock => clock, Mem_Data_Out => mem_out);
-    Mem_Add_Mux : Mux16_2x1 port map(A0 => D1, A1 =>T3_out, sel =>Mem_Add_Sel,F =>mem_add);
-    Mem_In_Mux : Mux16_2x1 port map(A0 =>T4_out, A1 => D1, sel =>Mem_In_Sel,F =>mem_in);
+    Mem_Add_Mux_Internal : Mux16_2x1 port map(A0 => D1, A1 =>T3_out, sel =>Mem_Add_Sel,F =>mem_add_internal);
+    Mem_In_Mux_Internal : Mux16_2x1 port map(A0 =>T4_out, A1 => D1, sel =>Mem_In_Sel,F =>mem_in_internal);
 
-
-    
-    
+    --Memory External Muxes
+    Mem_Add_Mux : Mux16_2x1 port map(A0 => mem_add_internal, A1 =>Mem_Ext_Add, sel =>Mem_Ext_WR,F =>mem_add);
+    Mem_In_Mux : Mux16_2x1 port map(A0 =>mem_in_internal, A1 => Mem_Ext_Data_in, sel =>Mem_Ext_WR,F =>mem_in);
+    mem_WR<= Mem_Ext_WR or ((not Mem_Ext_WR) and mem_WR_Internal);
 --
 end Struct;
     

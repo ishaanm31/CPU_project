@@ -10,7 +10,7 @@ entity FSM is
         A1_sel : out std_logic_vector(1 downto 0);
         A3_sel : out std_logic_vector(2 downto 0);
         D3_sel : out std_logic_vector(2 downto 0);
-        Reg_file_EN, mem_WR: out std_logic;
+        Reg_file_EN, mem_WR_Internal: out std_logic;
         C_ctrl, Z_ctrl: out std_logic;
         T1_WR,T2_WR,T3_WR,T4_WR,loop_count_WR: out std_logic;
         ALU_A_sel: out std_logic_vector(2 downto 0);
@@ -24,7 +24,6 @@ architecture behave of FSM is
     -------ADD-SUM-------------------------------------------------------------
     type FSM_States   is (S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10);
     signal State : FSM_States;
-    shared variable i:integer range 0 to 7;
 begin
     
 process(clock)
@@ -34,7 +33,7 @@ process(clock)
     variable v_A1_sel : std_logic_vector(1 downto 0);
     variable v_A3_sel : std_logic_vector(2 downto 0);
     variable v_D3_sel : std_logic_vector(2 downto 0);
-    variable v_Reg_file_EN, v_mem_WR: std_logic;
+    variable v_Reg_file_EN, v_mem_WR_Internal: std_logic;
     variable v_C_ctrl, v_Z_ctrl: std_logic;
     variable v_T1_WR,v_T2_WR,v_T3_WR,v_T4_WR: std_logic;
     variable v_ALU_A_sel: std_logic_vector(2 downto 0);
@@ -49,7 +48,7 @@ process(clock)
         v_A1_sel:="00"; v_A3_sel:="000"; v_D3_sel:="000";
         v_T3_sel:='0';
         v_Reg_file_EN:='0';
-        v_mem_WR:='0';
+        v_mem_WR_Internal:='0';
         v_C_ctrl:='0'; 
         v_Z_ctrl:='0';
         v_T1_WR:='0';v_T2_WR:='0';v_T3_WR:='0';v_T4_WR:='0';
@@ -163,6 +162,7 @@ case State is --  making cases for states
             v_ALU_B_sel:="11";
             v_alu_sel:="00";
             next_state:= S5;
+
         elsif(OP_code="1100") then
             v_ALU_A_sel:="001";
             v_ALU_B_sel:="11";
@@ -238,60 +238,9 @@ case State is --  making cases for states
     when S5 =>
         v_Mem_Add_Sel := '1';
         v_Mem_In_Sel := '0';
-        v_mem_WR := '1';
+        v_mem_WR_Internal := '1';
         next_state:=S3;
 
-        
-    -- when S6 =>
-    --     if(i<7) then
-    --         v_Reg_file_EN := '1';
-    --         v_Mem_Add_Sel:='1';
-    --         v_D3_sel:="010";
-    --         v_loop_count:=std_logic_vector(to_unsigned(i,3));
-    --         v_A3_sel:="011";
-    --         v_ALU_A_sel:="001";
-    --         v_ALU_B_sel:="10";
-    --         v_T3_WR:='1';
-    --         i:=i+1;
-    --         next_state:=S6;
-    --     else 
-    --         v_Reg_file_EN := '1';
-    --         v_Mem_Add_Sel:='1';
-    --         v_D3_sel:="010";
-    --         v_loop_count:=std_logic_vector(to_unsigned(i,3));
-    --         v_A3_sel:="011";
-    --         v_ALU_A_sel:="001";
-    --         v_ALU_B_sel:="10";
-    --         v_T3_WR:='1';
-    --         i:=0;
-    --         next_state:=S3; 
-    --     end if;
-
-    -- when S7 =>
-    
-    -- if(i<7) then
-    --     v_A1_sel:="00";
-    --     v_Mem_In_Sel:='1';
-    --     v_Mem_Add_Sel:='1';
-    --     v_loop_count:=std_logic_vector(to_unsigned(i,3));
-    --     v_ALU_A_sel:="001";
-    --     v_ALU_B_sel:="10";
-    --     v_T3_WR:='1';
-    --     v_T3_sel:='1';
-    --     i:=i+1;
-    --     next_state:=S7;
-    -- else 
-    --     v_A1_sel:="00";
-    --     v_Mem_In_Sel:='1';
-    --     v_Mem_Add_Sel:='1';
-    --     v_loop_count:=std_logic_vector(to_unsigned(i,3));
-    --     v_ALU_A_sel:="001";
-    --     v_ALU_B_sel:="10";
-    --     v_T3_WR:='1';
-    --     v_T3_sel:='1';
-    --     i:=0;
-    --     next_state:=S3; 
-    -- end if;
 -------------------------------------
     when S8 =>
         v_Reg_file_EN := '1';   
@@ -347,7 +296,7 @@ case State is --  making cases for states
         v_Mem_Add_Sel:='1';
         v_Mem_In_Sel:='1';
         v_A1_se6l:="00";
-        v_mem_WR := v_LMSM_Imm(to_integer(unsigned(loop_count)));
+        v_mem_WR_Internal := v_LMSM_Imm(to_integer(unsigned(loop_count)));
         v_ALU_A_sel:="100";
         v_ALU_B_sel:="10";
         v_alu_sel:="00";
@@ -377,7 +326,7 @@ end case;
     v_A1_sel:=v_A1_sel; A3_sel<=v_A3_sel; D3_sel<=v_D3_sel;
     T3_sel<=v_T3_sel;
     Reg_file_EN<=v_Reg_file_EN;
-    mem_WR<=v_mem_WR;
+    mem_WR_Internal<=v_mem_WR_Internal;
     C_ctrl<=v_C_ctrl; 
     Z_ctrl<=v_Z_ctrl;
     T1_WR<=v_T1_WR; T2_WR<=v_T2_WR; T3_WR<=v_T3_WR ; T4_WR<=v_T4_WR;
