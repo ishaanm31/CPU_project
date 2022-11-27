@@ -1,4 +1,3 @@
-
 --16 bits
 --8x1 Multiplexer
 library ieee;
@@ -16,10 +15,7 @@ entity Mux16_8x1 is
          sel:in std_logic_vector(2 downto 0);
          F: out std_logic_vector(15 downto 0));
 end Mux16_8x1;
-
 architecture Dataflow of Mux16_8x1 is
-begin
-process_Mux16_8x1:process(A0,A1,A2,A3,A4,A5,A6,A7)
 begin
    case sel is
       when "000" => 
@@ -39,9 +35,8 @@ begin
       when "111" => 
          F <= A7; 
       when others =>
-         null;
+         F <= "0000000000000000";
    end case;
-end process process_Mux16_8x1;
 end Dataflow;
 
 --4x1 multiplexer
@@ -57,10 +52,7 @@ entity Mux16_4x1 is
          F: out std_logic_vector(15 downto 0));
 end Mux16_4x1;
 architecture Dataflow of Mux16_4x1 is
-
     begin
-	 process_Mux16_4x1 :process(A0,A1,A2,A3,sel)
-	 begin
       case sel is
          when "00" => 
             F <= A0;
@@ -72,9 +64,8 @@ architecture Dataflow of Mux16_4x1 is
             F <= A3; 
          when others =>
             F <= "0000000000000000";
-      end case;
-end process process_Mux16_4x1 ;		
-end Dataflow;
+      end case;   
+    end Dataflow;
 
 --2x1 Multiplexer
 library ieee;
@@ -83,12 +74,10 @@ use ieee.numeric_std.all;
 entity Mux16_2x1 is
     port(A0: in std_logic_vector(15 downto 0);
          A1: in std_logic_vector(15 downto 0);
-         sel:in std_logic;
-         F: out std_logic_vector(15 downto 0));
-end  Mux16_2x1;
+         sel:in std_logic_vector;
+         F: out std_logic);
+end Mux16_2x1;
 architecture Dataflow of Mux16_2x1 is
-begin
-process_Mux16_2x1 :process(A0,A1,sel)
 begin
    case sel is   
       when '0' =>
@@ -97,8 +86,6 @@ begin
          F <= A1;
       when others =>
          F <= "0000000000000000";
-			end case;
-			end process process_Mux16_2x1;
 end Dataflow;
 
 
@@ -154,9 +141,6 @@ entity Mux3_8x1 is
 end Mux3_8x1;
 architecture Dataflow of Mux3_8x1 is
 begin
-process_Mux3_8x1 :process(A0,A1,A2,A3,A4,A5,A6,A7,sel)
-begin
-
    case sel is
       when "000" => 
          F <= A0;
@@ -177,7 +161,6 @@ begin
       when others =>
          F <= "000";
    end case;
-end process process_Mux3_8x1;
 end Dataflow;
 
 --4x1 multiplexer
@@ -190,11 +173,9 @@ entity Mux3_4x1 is
          A2: in std_logic_vector(2 downto 0);
          A3: in std_logic_vector(2 downto 0);
          sel: in std_logic_vector(1 downto 0);
-         F: out std_logic_vector(2 downto 0));
+         F: out std_logic(2 downto 0));
 end Mux3_4x1;
-architecture Dataflow1 of Mux3_4x1 is
-begin
-process_Mux3_4x1 :process(A0,A1,A2,A3,sel)
+architecture Dataflow of Mux16_4x1 is
     begin
       case sel is
          when "00" => 
@@ -207,6 +188,5 @@ process_Mux3_4x1 :process(A0,A1,A2,A3,sel)
             F <= A3; 
          when others =>
             F <= "000";
-      end case;
-end process process_Mux3_4x1 ;		
-    end Dataflow1;
+      end case;   
+    end Dataflow;

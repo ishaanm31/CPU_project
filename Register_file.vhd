@@ -11,7 +11,7 @@ end entity Register_file;
 
 architecture struct of Register_File is
     type mem_word   is array (0 to 7) of std_logic_vector(15 downto 0);
-    signal Data : mem_word :=;
+    signal Data : mem_word :=(others=>(others=>'0'));
 
 begin
 -----------------------------------------ARRAY of Registers--------------------------------------
