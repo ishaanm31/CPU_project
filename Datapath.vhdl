@@ -15,9 +15,9 @@ entity Datapath is
         Reg_file_EN, mem_WR: in std_logic;
         C_ctrl, Z_ctrl: in std_logic;
         T1_WR,T2_WR,T3_WR,T4_WR,loop_count_WR: in std_logic;        
-        sel_m1: in std_logic_vector(2 downto 0);
-        sel_m2: in std_logic_vector(1 downto 0);
-        sel_m3, sel_m4, sel_m5: in std_logic;
+        ALU_A_sel: in std_logic_vector(2 downto 0);
+        ALU_B_sel: in std_logic_vector(1 downto 0);
+        T3_sel, Mem_Add_Sel, Mem_In_Sel: in std_logic;
         
         --Outputs
         Z_flag, C_flag: out std_logic;
@@ -58,7 +58,7 @@ architecture Struct of Datapath is
     end component;
     
     --4. Temporary Register
-    component Temp_Reg is
+    component Register_8bit is
         port (DataIn:in std_logic_vector(15 downto 0);
         clock,Write_Enable:in std_logic;
         DataOut:out std_logic_vector(15 downto 0));
@@ -171,16 +171,14 @@ architecture Struct of Datapath is
     --Signals for memory:
     signal mem_add,mem_in,mem_out: std_logic_vector(15 downto 0);
     
-    --Signals in general:
-    
 begin
 -- Temporary registers
-    T1: Temp_Reg port map(DataIn => D1, clock => clock, Write_Enable => T1_WR, DataOut => T1_out);
-    T2: Temp_Reg port map(DataIn => mem_out, clock => clock, Write_Enable => T2_WR, DataOut => T2_out);
-    T3: Temp_Reg port map(DataIn => T3_in, clock => clock, Write_Enable => T3_WR, DataOut => T3_out);
-    T4: Temp_Reg port map(DataIn => D2, clock => clock, Write_Enable => T4_WR, DataOut => T4_out);
+    T1: Register_8bit port map(DataIn => D1, clock => clock, Write_Enable => T1_WR, DataOut => T1_out);
+    T2: Register_8bit port map(DataIn => mem_out, clock => clock, Write_Enable => T2_WR, DataOut => T2_out);
+    T3: Register_8bit port map(DataIn => T3_in, clock => clock, Write_Enable => T3_WR, DataOut => T3_out);
+    T4: Register_8bit port map(DataIn => D2, clock => clock, Write_Enable => T4_WR, DataOut => T4_out);
     loop_register : Small_Reg port map (DataIn => ALU_C, clock => clock, Write_Enable => loop_count_WR, DataOut => loop_count);
-    m3: MUX16_2x1 port map(A0=> D1,A1=> alu_c, sel =>sel_m3, F=>T3_in);
+    T3_Mux: MUX16_2x1 port map(A0=> D1,A1=> alu_c, sel =>T3_sel, F=>T3_in);
 
 --Component Initiate for Register File
     Reg_File: Register_file port map (A1, A2, A3, D3, clock, Reg_file_EN, D1, D2);
@@ -199,17 +197,17 @@ begin
 --Components for ALU
     alu1 : ALU port map (ALU_A => alu_a, ALU_B => alu_b, ALU_C => alu_c, C_F => carry_dff_inp, Z_F => zero_dff_inp, sel => alu_sel);
     
-    m1 : Mux16_8x1 port map(A0 => T1_out, A1 => T3_out, A2 => T4_out,A3 => T2_SE10_out,
+    ALU_A_Mux : Mux16_8x1 port map(A0 => T1_out, A1 => T3_out, A2 => T4_out,A3 => T2_SE10_out,
                             A4=>loop_count,A5=>"0000000000000000",A6=>"0000000000000000",
-                            A7=>"0000000000000000", sel => sel_m1, F => alu_a);
-    m2 : Mux16_4x1 port map(A0 => T3_out, A1 => T2_SE7_out, A2 => "0000000000000001", A3 => "0000000000000000", sel => sel_m2, F => alu_b); 
+                            A7=>"0000000000000000", sel => ALU_A_sel, F => alu_a);
+    ALU_B_Mux : Mux16_4x1 port map(A0 => T3_out, A1 => T2_SE7_out, A2 => "0000000000000001", A3 => "0000000000000000", sel => ALU_B_sel, F => alu_b); 
     
     carry_dff: dff_en port map(clk => clock, reset => reset, en => C_ctrl, d => carry_dff_inp, q => C_flag);
     zero_dff: dff_en port map(clk => clock, reset => reset, en => Z_ctrl, d => zero_dff_inp, q => Z_flag);
     
     mem : Memory port map(Mem_Add => mem_add, Mem_Data_In => mem_in,Write_Enable => mem_WR,clock => clock, Mem_Data_Out => mem_out);
-    m4 : Mux16_2x1 port map(A0 => D1, A1 =>T3_out, sel =>sel_m4,F =>mem_add);
-    m5 : Mux16_2x1 port map(A0 =>T4_out, A1 => D1, sel =>sel_m5,F =>mem_in);
+    Mem_Add_Mux : Mux16_2x1 port map(A0 => D1, A1 =>T3_out, sel =>Mem_Add_Sel,F =>mem_add);
+    Mem_In_Mux : Mux16_2x1 port map(A0 =>T4_out, A1 => D1, sel =>Mem_In_Sel,F =>mem_in);
 
 
     

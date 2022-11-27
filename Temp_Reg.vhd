@@ -2,13 +2,13 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 -- write the Flipflops packege declaration
-entity Temp_Reg is
+entity Register_8bit is
 port (DataIn:in std_logic_vector(15 downto 0);
 clock,Write_Enable:in std_logic;
 DataOut:out std_logic_vector(15 downto 0));
-end entity Temp_Reg;
+end entity Register_8bit;
 
-architecture struct of Temp_Reg is
+architecture struct of Register_8bit is
     shared variable Data : std_logic_vector(15 downto 0):="0000000000000000";
 begin
 -----------------------------------------ARRAY of Registers--------------------------------------
