@@ -7,7 +7,7 @@ entity Datapath is
         --Inputs
         clock, reset:in std_logic;
 
-        --Input from Datapath
+        --Input from FSM, basically Control Variables
         alu_sel:in std_logic_vector(1 downto 0);    
         A1_sel : in std_logic_vector(1 downto 0);
         A3_sel : in std_logic_vector(2 downto 0);
@@ -21,7 +21,7 @@ entity Datapath is
         
         --Outputs
         Z_flag, C_flag: out std_logic;
-        T1_out,T2_out : buffer std_logic_vector(15 downto 0);
+        T2_out : buffer std_logic_vector(15 downto 0);
         loop_count:buffer std_logic_vector(2 downto 0)
 		);
 end Datapath;
@@ -58,7 +58,7 @@ architecture Struct of Datapath is
     end component;
     
     --4. Temporary Register
-    component Register_8bit is
+    component Register_16bit is
         port (DataIn:in std_logic_vector(15 downto 0);
         clock,Write_Enable:in std_logic;
         DataOut:out std_logic_vector(15 downto 0));
@@ -143,11 +143,11 @@ architecture Struct of Datapath is
              F: out std_logic_vector(15 downto 0));
     end component;
     --13. 3 Bit register for Loop Counter
-    component Small_Reg is
+    component Register_3bit is
         port (DataIn:in std_logic_vector(2 downto 0);
         clock,Write_Enable:in std_logic;
         DataOut:out std_logic_vector(2 downto 0));
-    end component Small_Reg;
+    end component Register_3bit;
 
     --Signals required for ALU:
     signal alu_a, alu_b, alu_c: std_logic_vector(15 downto 0);
@@ -172,15 +172,16 @@ architecture Struct of Datapath is
     signal mem_add,mem_in,mem_out: std_logic_vector(15 downto 0);
     
 begin
--- Temporary registers
-    T1: Register_8bit port map(DataIn => D1, clock => clock, Write_Enable => T1_WR, DataOut => T1_out);
-    T2: Register_8bit port map(DataIn => mem_out, clock => clock, Write_Enable => T2_WR, DataOut => T2_out);
-    T3: Register_8bit port map(DataIn => T3_in, clock => clock, Write_Enable => T3_WR, DataOut => T3_out);
-    T4: Register_8bit port map(DataIn => D2, clock => clock, Write_Enable => T4_WR, DataOut => T4_out);
-    loop_register : Small_Reg port map (DataIn => ALU_C, clock => clock, Write_Enable => loop_count_WR, DataOut => loop_count);
+-- Temporary registers and Loop Count register Instantiate
+    T1: Register_16bit port map(DataIn => D1, clock => clock, Write_Enable => T1_WR, DataOut => T1_out);
+    T2: Register_16bit port map(DataIn => mem_out, clock => clock, Write_Enable => T2_WR, DataOut => T2_out);
+    T3: Register_16bit port map(DataIn => T3_in, clock => clock, Write_Enable => T3_WR, DataOut => T3_out);
+    T4: Register_16bit port map(DataIn => D2, clock => clock, Write_Enable => T4_WR, DataOut => T4_out);
+    loop_register : Register_3bit port map (DataIn => ALU_C, clock => clock, Write_Enable => loop_count_WR, DataOut => loop_count);
+--Mux for T3 from 00->D1, 01-> ALU_C    
     T3_Mux: MUX16_2x1 port map(A0=> D1,A1=> alu_c, sel =>T3_sel, F=>T3_in);
 
---Component Initiate for Register File
+--Register File Instantiate
     Reg_File: Register_file port map (A1, A2, A3, D3, clock, Reg_file_EN, D1, D2);
     A2 <= T2_out(8 downto 6);
 
